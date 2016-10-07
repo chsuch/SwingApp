@@ -175,41 +175,45 @@ public class EditCustomerInfoPanel extends JPanel implements ActionListener{
 		}
 	}
 
-	private int[] saveModifiedDatas(){
-		int[] result = null;
-		String query = 
-					"UPDATE CUSTOMER "
-				+ 	"SET "
-				+ 	"NAME = ?, "
-				+ 	"PHONE_NO = ?, "
-				+ 	"ADDRESS = ?, "
-				+ 	"POST_CODE = ? "
-				+ 	"WHERE "
-				+ 	"CUSTOMER_NO = ?";
-		try {
-			DatabaseManager.initDatabase(false);
-			DatabaseManager.beginTransaction();
-			result = DatabaseManager.excuteUpdate(query, getUpdateDatas());
-			DatabaseManager.commitTransaction();
-			successUpdateDatas();
-		} catch (SQLException e1) {
-			JOptionPane.showMessageDialog(this, String.format("입력 중 오류가 발생했습니다.[%s]", e1.getMessage()));
-			e1.printStackTrace();
+	private void saveModifiedDatas(){
+		mMainFrame.doWork(new Runnable() {
+			
+			@Override
+			public void run() {
+				String query = 
+						"UPDATE CUSTOMER "
+					+ 	"SET "
+					+ 	"NAME = ?, "
+					+ 	"PHONE_NO = ?, "
+					+ 	"ADDRESS = ?, "
+					+ 	"POST_CODE = ? "
+					+ 	"WHERE "
+					+ 	"CUSTOMER_NO = ?";
 			try {
-				DatabaseManager.rollbackTransaction();
-			} catch (SQLException e2) {
-				// TODO Auto-generated catch block
-				e2.printStackTrace();
-			}
-		} finally {
-			try {
-				DatabaseManager.releaseConnection(DatabaseManager.getConnection());
+				DatabaseManager.initDatabase(false);
+				DatabaseManager.beginTransaction();
+				DatabaseManager.excuteUpdate(query, getUpdateDatas());
+				DatabaseManager.commitTransaction();
+				successUpdateDatas();
 			} catch (SQLException e1) {
-				// TODO Auto-generated catch block
+				JOptionPane.showMessageDialog(EditCustomerInfoPanel.this, String.format("입력 중 오류가 발생했습니다.[%s]", e1.getMessage()));
 				e1.printStackTrace();
+				try {
+					DatabaseManager.rollbackTransaction();
+				} catch (SQLException e2) {
+					// TODO Auto-generated catch block
+					e2.printStackTrace();
+				}
+			} finally {
+				try {
+					DatabaseManager.releaseConnection(DatabaseManager.getConnection());
+				} catch (SQLException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 			}
-		}
-		return result;
+			}
+		});
 	}
 	
 	private ArrayList<ArrayList<String>> getUpdateDatas() {
@@ -285,26 +289,32 @@ public class EditCustomerInfoPanel extends JPanel implements ActionListener{
 	
 	
 	private void setDataList(ResultSet rs){
-		while(mTable.getRowCount() > 0){
-			((DefaultTableModel)mTable.getModel()).removeRow(0);
-		}
-		int count = 0;
-		try {
-			while(rs.next()){
-				count++;
-				((DefaultTableModel)mTable.getModel()).addRow(new String[]
-					{
-						rs.getString(1),rs.getString(2),rs.getString(3),rs.getString(4),rs.getString(5),rs.getString(6),rs.getString(7)
+		mMainFrame.doWork(new Runnable() {
+			
+			@Override
+			public void run() {
+				while(mTable.getRowCount() > 0){
+					((DefaultTableModel)mTable.getModel()).removeRow(0);
+				}
+				int count = 0;
+				try {
+					while(rs.next()){
+						count++;
+						((DefaultTableModel)mTable.getModel()).addRow(new String[]
+							{
+								rs.getString(1),rs.getString(2),rs.getString(3),rs.getString(4),rs.getString(5),rs.getString(6),rs.getString(7)
+							}
+						);
 					}
-				);
+					if(count == 0){
+						JOptionPane.showMessageDialog(EditCustomerInfoPanel.this, "검색된 데이터가 없습니다.");
+					}
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} 
 			}
-			if(count == 0){
-				JOptionPane.showMessageDialog(this, "검색된 데이터가 없습니다.");
-			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
+		});
 	}
 	
 	public void onClickSearchBtn(){

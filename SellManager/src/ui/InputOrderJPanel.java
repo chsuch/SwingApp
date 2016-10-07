@@ -123,38 +123,45 @@ public class InputOrderJPanel extends JPanel implements ActionListener{
 	public void actionPerformed(ActionEvent e) {
 		Object obj = e.getSource();
 		if(obj == btnInput){
-			int selectedOption = JOptionPane.showConfirmDialog(this, "작성된 데이터를 저장 하시겠습니까?", null, JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
-			if(selectedOption == JOptionPane.OK_OPTION){
-				if(checkValidation()){
-					ArrayList<HashMap<String, String>> datas = getInputDatas();
-					try {
-						DatabaseManager.initDatabase(false);
-						DatabaseManager.beginTransaction();
-						
-						addCustomerDatas(datas);
-						addSellDatas(datas);
-						
-						DatabaseManager.commitTransaction();
-						successInputData();
-					} catch (SQLException e1) {
-						JOptionPane.showMessageDialog(this, String.format("입력 중 오류가 발생했습니다.[%s]", e1.getMessage()));
-						e1.printStackTrace();
-						try {
-							DatabaseManager.rollbackTransaction();
-						} catch (SQLException e2) {
-							// TODO Auto-generated catch block
-							e2.printStackTrace();
-						}
-					} finally {
-						try {
-							DatabaseManager.releaseConnection(DatabaseManager.getConnection());
-						} catch (SQLException e1) {
-							// TODO Auto-generated catch block
-							e1.printStackTrace();
+			mMainFrame.doWork(new Runnable() {
+				
+				@Override
+				public void run() {
+					int selectedOption = JOptionPane.showConfirmDialog(InputOrderJPanel.this, "작성된 데이터를 저장 하시겠습니까?", null, JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+					if(selectedOption == JOptionPane.OK_OPTION){
+						if(checkValidation()){
+							ArrayList<HashMap<String, String>> datas = getInputDatas();
+							try {
+								DatabaseManager.initDatabase(false);
+								DatabaseManager.beginTransaction();
+								
+								addCustomerDatas(datas);
+								addSellDatas(datas);
+								
+								DatabaseManager.commitTransaction();
+								successInputData();
+							} catch (SQLException e1) {
+								JOptionPane.showMessageDialog(InputOrderJPanel.this, String.format("입력 중 오류가 발생했습니다.[%s]", e1.getMessage()));
+								e1.printStackTrace();
+								try {
+									DatabaseManager.rollbackTransaction();
+								} catch (SQLException e2) {
+									// TODO Auto-generated catch block
+									e2.printStackTrace();
+								}
+							} finally {
+								try {
+									DatabaseManager.releaseConnection(DatabaseManager.getConnection());
+								} catch (SQLException e1) {
+									// TODO Auto-generated catch block
+									e1.printStackTrace();
+								}
+							}
 						}
 					}
 				}
-			}
+			});
+			
 		}else if(obj == btnAddrow){
 			((DefaultTableModel)mTable.getModel()).addRow(new String[]{String.valueOf(mTable.getRowCount()+1),"2016-01-02","최성춘","최성춘","01054611364","상품1","경기도 고양시 덕양구","15000",""});
 		}else if(obj == btnExcel){
@@ -162,7 +169,13 @@ public class InputOrderJPanel extends JPanel implements ActionListener{
 			jfc.setMultiSelectionEnabled(false);
 			int status = jfc.showOpenDialog(this);
 			if(status == JFileChooser.APPROVE_OPTION){
-				setToTable(jfc.getSelectedFile());
+				mMainFrame.doWork(new Runnable() {
+					
+					@Override
+					public void run() {
+						setToTable(jfc.getSelectedFile());
+					}
+				});
 			}
 		}else if(obj == btnClearAll){
 			int selectedOption = JOptionPane.showConfirmDialog(this, "입력된 데이터를 초기화 하시겠습니까?", null, JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
@@ -269,8 +282,10 @@ public class InputOrderJPanel extends JPanel implements ActionListener{
 	 * @throws SQLException 
 	 */
 	private Integer[] addCustomerDatas(ArrayList<HashMap<String, String>> sellData) throws SQLException{
+		//SELECT CASE WHEN A.CUSTOMER_NO IS NULL THEN 1 ELSE A.CUSTOMER_NO END FROM (SELECT CUSTOMER_NO FROM CUSTOMER ORDER BY CUSTOMER_NO DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY) A
 		ArrayList<Integer> inputResult = new ArrayList<Integer>();
 		ArrayList<String> rowData = null;
+		int customerNo = DatabaseManager.getSeqNo(Constants.TABLE_CUSTOMER);
 		for(int i=0; i<sellData.size(); i++){
 			rowData = new ArrayList<String>();
 			rowData.add(sellData.get(i).get("NAME"));
@@ -279,7 +294,8 @@ public class InputOrderJPanel extends JPanel implements ActionListener{
 			rowData.add(sellData.get(i).get("POST_CODE"));
 			System.out.println(rowData.toString());
 			try {
-				inputResult.add(DatabaseManager.excuteUpdate("INSERT INTO " + Constants.TABLE_CUSTOMER + " (NAME, PHONE_NO, ADDRESS, POST_CODE) VALUES (?,?,?,?)", rowData.toArray(new String[rowData.size()])));
+				inputResult.add(DatabaseManager.excuteUpdate("INSERT INTO " + Constants.TABLE_CUSTOMER + " (CUSTOMER_NO, NAME, PHONE_NO, ADDRESS, POST_CODE) VALUES (" + customerNo + ",?,?,?,?)", rowData.toArray(new String[rowData.size()])));
+				customerNo++;
 			} catch (SQLException e1) {
 				if(e1.getSQLState().equals("23505")){
 					System.out.println("[" + sellData.get(i).get("NAME") + ", " + sellData.get(i).get("PHONE_NO") + "] 기입력된 고객정보입니다.");
@@ -296,8 +312,10 @@ public class InputOrderJPanel extends JPanel implements ActionListener{
 		int[] inputResult = null;
 		ArrayList<ArrayList<String>> inputDatas = new ArrayList<ArrayList<String>>();
 		ArrayList<String> rowData = null;
+		int seq = DatabaseManager.getSeqNo(Constants.TABLE_SELL_LIST);
 		for(int i=0; i<sellData.size(); i++){
 			rowData = new ArrayList<String>();
+			rowData.add(""+seq++);
 			rowData.add(sellData.get(i).get("NAME"));
 			rowData.add(sellData.get(i).get("PHONE_NO"));
 			rowData.add(sellData.get(i).get("BUY_DATE"));
@@ -308,7 +326,7 @@ public class InputOrderJPanel extends JPanel implements ActionListener{
 			inputDatas.add(rowData);
 		}
 		
-		inputResult = DatabaseManager.excuteUpdate("INSERT INTO SELL_LIST (CUSTOMER_NO, BUY_DATE, RECIPIENT, JUMUN, ETC) VALUES ((SELECT CUSTOMER_NO FROM CUSTOMER WHERE NAME=? AND PHONE_NO=?),?,?,?,?)", inputDatas);
+		inputResult = DatabaseManager.excuteUpdate("INSERT INTO SELL_LIST (SEQ, CUSTOMER_NO, BUY_DATE, RECIPIENT, JUMUN, ETC) VALUES (?,(SELECT CUSTOMER_NO FROM CUSTOMER WHERE NAME=? AND PHONE_NO=?),?,?,?,?)", inputDatas);
 		
 		return inputResult;
 	}

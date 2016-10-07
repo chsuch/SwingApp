@@ -1,27 +1,31 @@
 package ui;
 
+import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
-import javax.swing.JProgressBar;
+import javax.swing.JPanel;
 import javax.swing.JSeparator;
+import javax.swing.SwingWorker;
 
-import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFCellStyle;
-import org.apache.poi.hssf.usermodel.HSSFDataFormat;
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -40,7 +44,7 @@ public class MainFrame extends JFrame implements ActionListener{
 	private SearchCustomerPanel mCustomerSearchPanel;
 	private EditCustomerInfoPanel mEditCustomerInfoPanel;
 	private EditSellInfoPanel mEditSellInfoPanel;
-	private JProgressBar mProgress;
+	private JDialog loading;
 	private JButton mDefaultBtn;
 	private JMenuItem miEditCustomerInfo;
 	private JMenuItem miEditSellInfo;
@@ -62,6 +66,16 @@ public class MainFrame extends JFrame implements ActionListener{
 	}
 	
 	private void init() {
+		loading = new JDialog(this);
+	    JPanel p1 = new JPanel(new BorderLayout());
+	    p1.add(new JLabel("Please wait..."), BorderLayout.CENTER);
+	    loading.setUndecorated(true);
+	    loading.getContentPane().add(p1);
+	    loading.pack();
+	    loading.setLocationRelativeTo(this);
+	    loading.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+	    loading.setModal(true);
+		
 		mInputOrderPanel = new InputOrderJPanel(this);
 		mSellHistorySearchPanel = new SearchSellHistoryPanel(this);
 		mCustomerSearchPanel = new SearchCustomerPanel(this);
@@ -113,6 +127,23 @@ public class MainFrame extends JFrame implements ActionListener{
 //		mEditSellInfoPanel.setVisible(true);
 	}
 
+	public void doWork(Runnable r){
+		new SwingWorker<Void, Void>() {
+
+			@Override
+			protected void done() {
+				loading.dispose();
+			}
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				r.run();
+				return null;
+			}
+		}.execute();
+		loading.setVisible(true);
+	}
+	
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		Object obj = e.getSource();
@@ -131,7 +162,25 @@ public class MainFrame extends JFrame implements ActionListener{
 		}else if(obj==miExportExcel){
 			int selectedOption = JOptionPane.showConfirmDialog(this, "DB에 저장된 데이터를 Excel파일로 생성합니다.\n진행하시겠습니까?", null, JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
 			if(selectedOption == JOptionPane.OK_OPTION){
-				makeExcel(getSearchedData());
+				doWork(new Runnable() {
+					public void run() {
+						makeExcel(getSearchedData());
+					}
+				});
+//				new SwingWorker<Void, Void>() {
+//
+//					@Override
+//					protected void done() {
+//						loading.dispose();
+//					}
+//
+//					@Override
+//					protected Void doInBackground() throws Exception {
+//						makeExcel(getSearchedData());
+//						return null;
+//					}
+//				}.execute();
+//				loading.setVisible(true);
 			}
 		}else{
 			setTitle( ((JMenuItem)obj).getText() );
@@ -140,13 +189,19 @@ public class MainFrame extends JFrame implements ActionListener{
 			mCustomerSearchPanel.setVisible(obj==miSearchCustomer);
 			mEditCustomerInfoPanel.setVisible(obj==miEditCustomerInfo);
 			mEditSellInfoPanel.setVisible(obj==miEditSellInfo);
+			
 		}
 	}
 	
 	private void makeExcel(ResultSet rs){
+		File dir = new File("backup");
+		if(!dir.exists()){
+			dir.mkdir();
+		}
+		SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
 		int count = 0;
 		try {
-			FileOutputStream fileOut = new FileOutputStream("판매이력.xls");
+			FileOutputStream fileOut = new FileOutputStream(new File(dir, (String.format("판매이력_%s.xls", format.format(new Date(System.currentTimeMillis()))))));
 			HSSFWorkbook workbook = new HSSFWorkbook();
 			HSSFSheet worksheet = workbook.createSheet("판매이력");
 			createHeader(workbook, worksheet.createRow(0));
@@ -168,6 +223,7 @@ public class MainFrame extends JFrame implements ActionListener{
 				JOptionPane.showMessageDialog(this, "Excel파일을 생성했습니다.");
 			}
 		} catch (FileNotFoundException e) {
+			e.printStackTrace();
 			JOptionPane.showMessageDialog(this, "사용중인 Excel파일을 닫고 다시 실행해 주세요.");
 		} catch (IOException e) {
 			e.printStackTrace();

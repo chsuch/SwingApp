@@ -8,6 +8,8 @@ import java.util.ArrayList;
 
 import org.apache.derby.jdbc.EmbeddedDataSource;
 
+import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
+
 
 public class DatabaseManager {
 	private static EmbeddedDataSource ds;
@@ -75,6 +77,23 @@ public class DatabaseManager {
 		}
 	}
 	
+	public static int getSeqNo(String tableName) throws SQLException{
+		int reVal = 1;
+		String query = "";
+		if(tableName.equals(Constants.TABLE_CUSTOMER)){
+			query = "SELECT CUSTOMER_NO FROM CUSTOMER ORDER BY CUSTOMER_NO DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
+		}else if(tableName.equals(Constants.TABLE_SELL_LIST)){
+			query = "SELECT SEQ FROM SELL_LIST ORDER BY SEQ DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
+		}
+		
+		ResultSet rs = excuteQueryNoParams(query);
+		while(rs.next()){
+			reVal = rs.getInt(1)+1;
+		}
+		
+		return reVal;
+	}
+	
 	private static boolean tableExists(String tablename) throws SQLException{
 		Connection conn = getConnection();
 		ResultSet rs;
@@ -92,13 +111,13 @@ public class DatabaseManager {
 	
 	private static void createTables() throws SQLException {
 		String query = "CREATE table " + Constants.TABLE_CUSTOMER + " ("
-				+ " CUSTOMER_NO	INTEGER GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),"
+				+ " CUSTOMER_NO			INTEGER NOT NULL,"
 				+ " NAME				VARCHAR(10) NOT NULL,"
 				+ " PHONE_NO			VARCHAR(15) NOT NULL,"
-				+ " ADDRESS			VARCHAR(100) ,"
-				+ " POST_CODE		CHAR(5),"
-				+ " UPDATE_TIME		TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-				+ " INPUT_TIME		TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+				+ " ADDRESS				VARCHAR(100) ,"
+				+ " POST_CODE			CHAR(5),"
+				+ " UPDATE_TIME			TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+				+ " INPUT_TIME			TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
 				+ " DEL_YN				CHAR(1) DEFAULT 'N',"
 				+ " PRIMARY KEY(NAME, PHONE_NO)"
 				+ " )";
@@ -107,7 +126,7 @@ public class DatabaseManager {
 		excuteUpdate(query);
 		
 		query = "CREATE table " + Constants.TABLE_SELL_LIST + " ("
-				+ " SEQ									INTEGER NOT NULL PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),"
+				+ " SEQ									INTEGER NOT NULL PRIMARY KEY,"
 				+ " CUSTOMER_NO					INTEGER NOT NULL,"
 				+ " BUY_DATE							DATE,"
 				+ " RECIPIENT							VARCHAR(10),"

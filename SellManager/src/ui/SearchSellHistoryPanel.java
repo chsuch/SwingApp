@@ -19,6 +19,8 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 
+import com.sun.corba.se.spi.ior.MakeImmutable;
+
 import common.DatabaseManager;
 
 
@@ -189,27 +191,33 @@ public class SearchSellHistoryPanel extends JPanel implements ActionListener{
 	
 	
 	private void setDataList(ResultSet rs){
-		while(mTable.getRowCount() > 0){
-			((DefaultTableModel)mTable.getModel()).removeRow(0);
-		}
-		int count = 0;
-		try {
-			while(rs.next()){
-				count++;
-				((DefaultTableModel)mTable.getModel()).addRow(new String[]
-					{
-						rs.getString(9),
-						rs.getString(1),rs.getString(2),rs.getString(3),rs.getString(4),rs.getString(5),rs.getString(6),rs.getString(7),rs.getString(8)
+		mMainFrame.doWork(new Runnable() {
+			
+			@Override
+			public void run() {
+				while(mTable.getRowCount() > 0){
+					((DefaultTableModel)mTable.getModel()).removeRow(0);
+				}
+				int count = 0;
+				try {
+					while(rs.next()){
+						count++;
+						((DefaultTableModel)mTable.getModel()).addRow(new String[]
+							{
+								rs.getString(9),
+								rs.getString(1),rs.getString(2),rs.getString(3),rs.getString(4),rs.getString(5),rs.getString(6),rs.getString(7),rs.getString(8)
+							}
+						);
 					}
-				);
+					if(count == 0){
+						JOptionPane.showMessageDialog(SearchSellHistoryPanel.this, "검색된 데이터가 없습니다.");
+					}
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} 
 			}
-			if(count == 0){
-				JOptionPane.showMessageDialog(this, "검색된 데이터가 없습니다.");
-			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
+		});
 	}
 	
 	public void onClickSearchBtn(){
