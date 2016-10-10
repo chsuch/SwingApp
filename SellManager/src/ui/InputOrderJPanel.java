@@ -163,7 +163,7 @@ public class InputOrderJPanel extends JPanel implements ActionListener{
 			});
 			
 		}else if(obj == btnAddrow){
-			((DefaultTableModel)mTable.getModel()).addRow(new String[]{String.valueOf(mTable.getRowCount()+1),"2016-01-02","최성춘","최성춘","01054611364","상품1","경기도 고양시 덕양구","15000",""});
+			((DefaultTableModel)mTable.getModel()).addRow(new String[]{String.valueOf(mTable.getRowCount()+1),"","","","","","","",""});
 		}else if(obj == btnExcel){
 			jfc.setFileFilter(new FileNameExtensionFilter("excel[xls 형식만 지원]", "xls"));
 			jfc.setMultiSelectionEnabled(false);
@@ -194,6 +194,9 @@ public class InputOrderJPanel extends JPanel implements ActionListener{
 				if(selectedOption == JOptionPane.OK_OPTION){
 					for(int i=selectedRows.length-1; i>-1; i--){
 						((DefaultTableModel)mTable.getModel()).removeRow(selectedRows[i]);
+					}
+					for(int i=0; i<mTable.getRowCount(); i++){
+						mTable.setValueAt(String.valueOf(i+1), i, 0);
 					}
 				}
 			}

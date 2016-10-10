@@ -252,7 +252,7 @@ public class EditCustomerInfoPanel extends JPanel implements ActionListener{
 						+ "FROM "
 						+ "CUSTOMER A, (SELECT COUNT(CUSTOMER_NO) AS SELL_COUNT,CUSTOMER_NO FROM SELL_LIST WHERE DEL_YN != 'Y' GROUP BY CUSTOMER_NO) B "
 						+ "WHERE "
-						+ "A.CUSTOMER_NO = B.CUSTOMER_NO AND A.DEL_YN != 'Y' AND B.SELL_COUNT > ? "
+						+ "A.CUSTOMER_NO = B.CUSTOMER_NO AND A.DEL_YN != 'Y' AND B.SELL_COUNT >= ? "
 						+ "ORDER BY A.CUSTOMER_NO";
 			}else if(selectedIndex == 2){//°ν°΄Έν
 				query = "SELECT "
@@ -272,7 +272,8 @@ public class EditCustomerInfoPanel extends JPanel implements ActionListener{
 						+ "ORDER BY A.CUSTOMER_NO";
 			}
 			DatabaseManager.initDatabase(false);
-			rs = DatabaseManager.excuteQuery(query, new String[]{tfSearchWord.getText().trim()});
+			String searchWord = tfSearchWord.getText().trim();
+			rs = DatabaseManager.excuteQuery(query, new String[]{selectedIndex == 1 ? searchWord : "%"+searchWord+"%"});
 		} catch (Exception e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
