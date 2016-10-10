@@ -170,7 +170,9 @@ public class EditCustomerInfoPanel extends JPanel implements ActionListener{
 			}
 			int selectedOption = JOptionPane.showConfirmDialog(this, "수정 된 내용을 저장 하시겠습니까?", null, JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
 			if(selectedOption == JOptionPane.OK_OPTION){
-				saveModifiedDatas();
+				if(checkValidation()){
+					saveModifiedDatas();
+				}
 			}
 		}
 	}
@@ -215,6 +217,19 @@ public class EditCustomerInfoPanel extends JPanel implements ActionListener{
 			}
 		});
 	}
+	
+	private boolean checkValidation() {
+		for(int i=0; i<mTable.getRowCount(); i++){
+			String name = mTable.getValueAt(i, 2).toString().trim();//주문인
+			String phoneNo = mTable.getValueAt(i, 3).toString().trim();//전화번호
+			if(name.equals("") || phoneNo.equals("")){
+				JOptionPane.showMessageDialog(this, "[주문인]과 [전화번호]는 필수 입력 항목입니다.");
+				return false;
+			}
+		}
+		return true;
+	}
+
 	
 	private ArrayList<ArrayList<String>> getUpdateDatas() {
 		ArrayList<ArrayList<String>> datas = new ArrayList<ArrayList<String>>();
